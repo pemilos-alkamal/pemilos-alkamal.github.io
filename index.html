@@ -255,6 +255,12 @@ async function listV() {
 }
 async function delV(id) { if (confirm('Hapus pemilih ' + id + '?')) { const r = await api({action:'delVoter', id}); toast(r.ok ? 'Pemilih berhasil dihapus.' : r.msg, !r.ok); listV(); } }
 // Hasil
+let showTbl = true;
+function toggleTbl() {
+  showTbl = !showTbl;
+  $('#tbl').style.display = showTbl ? 'block' : 'none';
+  $('#tt').textContent = showTbl ? 'Sembunyikan Tabel' : 'Tampilkan Tabel';
+}
 async function tHas() {
   $('#tv').innerHTML = 'Memuat...';
   const r = await api({action:'results'}), col = ['#0f766e','#f59e0b','#3b82f6','#ef4444','#8b5cf6','#ec4899','#84cc16','#06b6d4'];
@@ -267,8 +273,8 @@ async function tHas() {
   <div>${cnt.map((c, i) => `<div style="margin:6px 0"><span style="display:inline-block;width:14px;height:14px;background:${col[i%8]};border-radius:3px"></span> <b>Paslon ${c.no} - ${esc(c.nama)}</b>: ${c.n} suara (${pc(c.n).toFixed(1)}%)</div>`).join('')}
   <div style="margin-top:8px">Suara masuk: ${tot} dari ${r.totalPemilih} pemilih</div></div></div>
   <div class="win">${!tot ? 'Belum ada suara masuk' : w.length > 1 ? 'Hasil seri: ' + w.map(x => 'Paslon ' + x.no).join(' & ') : '🏆 Pemenang PEMILOS: Paslon ' + w[0].no + ' - ' + esc(w[0].nama)}</div>
-  <div class="c" style="margin:0 0 8px"><button class="sm" onclick="tHas()">Refresh</button></div>
-  <table><tr><th>Waktu</th><th>ID</th><th>Nama</th><th>Kelas</th><th>Memilih</th></tr>${r.suara.map(s => `<tr><td>${esc(s.waktu)}</td><td>${esc(s.id)}</td><td>${esc(s.nama)}</td><td>${esc(s.kelas)}</td><td>Paslon ${esc(s.paslon_no)} - ${esc(s.paslon_nama)}</td></tr>`).join('')}</table>`;
+  <div class="c" style="margin:0 0 8px"><button class="sm" onclick="tHas()">Refresh</button> <button class="sm gray" id="tt" onclick="toggleTbl()">${showTbl ? 'Sembunyikan Tabel' : 'Tampilkan Tabel'}</button></div>
+  <div id="tbl" style="display:${showTbl ? 'block' : 'none'}"><table><tr><th>Waktu</th><th>ID</th><th>Nama</th><th>Kelas</th><th>Memilih</th></tr>${r.suara.map(s => `<tr><td>${esc(s.waktu)}</td><td>${esc(s.id)}</td><td>${esc(s.nama)}</td><td>${esc(s.kelas)}</td><td>Paslon ${esc(s.paslon_no)} - ${esc(s.paslon_nama)}</td></tr>`).join('')}</table></div>`;
 }
 window.addEventListener('unhandledrejection', ev => toast(errMsg(ev.reason), 1));
 setInterval(() => { if (!A && cur === 's1') api({action:'ping'}).catch(() => {}); }, 240000); // jaga server tetap aktif
