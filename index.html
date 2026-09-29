@@ -79,11 +79,11 @@ async function api(d) {
 function fs() { if (/Mobi|Android/i.test(navigator.userAgent)) return; const e = document.documentElement; if (!document.fullscreenElement && e.requestFullscreen) e.requestFullscreen().catch(()=>{}); }
 document.addEventListener('click', fs, {once:true});
 
-let cur = '';
+let cur = '', tk = 0;
 function saveCache(r) { try { localStorage.setItem('pemilos_cache', JSON.stringify(r)); } catch (e) {} }
 function toast(t, bad) { const e = document.createElement('div'); e.textContent = t; e.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:' + (bad ? '#dc2626' : '#059669') + ';color:#fff;padding:12px 22px;border-radius:10px;font-weight:700;z-index:99;max-width:90vw;text-align:center'; document.body.appendChild(e); setTimeout(() => e.remove(), 3500); }
 function shell(inner) {
-  cur = '';
+  cur = ''; tk++;
   $('#app').innerHTML = `<header><div id="logo" onclick="logoClick()">${S.logo ? `<img src="${S.logo}" style="width:100%;height:100%;border-radius:50%;object-fit:cover">` : '🗳️'}</div><h1>${esc(S.nama)}</h1></header><div id="view">${inner}</div>`;
 }
 function logoClick() {
@@ -249,7 +249,7 @@ async function addV() {
   tVot(); toast('Pemilih berhasil ditambahkan. ID: ' + p.id);
 }
 async function listV() {
-  const r = await api({action:'voters'});
+  const my = tk, r = await api({action:'voters'}); if (my !== tk || !$('#vl')) return;
   $('#vl').innerHTML = `<b>Total pemilih: ${r.list.length}</b><table><tr><th>ID</th><th>Nama</th><th>NISN</th><th>Kelas</th><th>JK</th><th>Tgl Lahir</th><th>Status</th><th></th></tr>
   ${r.list.map(v => `<tr><td>${esc(v.id)}</td><td>${esc(v.nama)}</td><td>${esc(v.nisn)}</td><td>${esc(v.kelas)}</td><td>${esc(v.gender)}</td><td>${esc(v.tgl_lahir)}</td><td>${v.sudah ? 'Sudah memilih' : 'Belum'}</td><td><button class="red sm" onclick="delV('${esc(v.id)}')">Hapus</button></td></tr>`).join('')}</table>`;
 }
@@ -262,8 +262,9 @@ function toggleTbl() {
   $('#tt').textContent = showTbl ? 'Sembunyikan Tabel' : 'Tampilkan Tabel';
 }
 async function tHas() {
-  $('#tv').innerHTML = 'Memuat...';
+  const my = tk; $('#tv').innerHTML = 'Memuat...';
   const r = await api({action:'results'}), col = ['#0f766e','#f59e0b','#3b82f6','#ef4444','#8b5cf6','#ec4899','#84cc16','#06b6d4'];
+  if (my !== tk || !$('#tv')) return;
   const tot = r.suara.length, cnt = r.paslon.map(p => ({...p, n:r.suara.filter(s => s.paslon_no === p.no).length}));
   const pc = n => tot ? (n * 100 / tot) : 0; let acc = 0;
   const grad = tot ? cnt.map((c, i) => { const a = acc; acc += pc(c.n); return `${col[i%8]} ${a}% ${acc}%`; }).join(',') : '#e5e7eb 0 100%';
