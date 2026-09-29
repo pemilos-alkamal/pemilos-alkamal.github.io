@@ -60,7 +60,7 @@ document.addEventListener('click', fs, {once:true});
 
 let cur = '';
 function saveCache(r) { try { localStorage.setItem('pemilos_cache', JSON.stringify(r)); } catch (e) {} }
-function toast(t) { const e = document.createElement('div'); e.textContent = t; e.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#059669;color:#fff;padding:12px 22px;border-radius:10px;font-weight:700;z-index:99'; document.body.appendChild(e); setTimeout(() => e.remove(), 3500); }
+function toast(t, bad) { const e = document.createElement('div'); e.textContent = t; e.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:' + (bad ? '#dc2626' : '#059669') + ';color:#fff;padding:12px 22px;border-radius:10px;font-weight:700;z-index:99'; document.body.appendChild(e); setTimeout(() => e.remove(), 3500); }
 function shell(inner) {
   cur = '';
   $('#app').innerHTML = `<header><div id="logo" onclick="logoClick()">${S.logo ? `<img src="${S.logo}" style="width:100%;height:100%;border-radius:50%;object-fit:cover">` : '🗳️'}</div><h1>${esc(S.nama)}</h1></header><div id="view">${inner}</div>`;
@@ -178,10 +178,10 @@ function tSet() {
 async function saveSet() {
   const nu = $('#su').value.trim(), np = $('#sp').value;
   const r = await api({action:'saveSettings', nama:$('#sn').value.trim() || S.nama, logo:fx($('#sl').value.trim()), newUser:nu, newPass:np});
-  if (!r.ok) return $('#sm').innerHTML = `<div class="err">${esc(r.msg)}</div>`;
+  if (!r.ok) return toast(r.msg, 1), $('#sm').innerHTML = `<div class="err">${esc(r.msg)}</div>`;
   if (nu) A.u = nu; if (np) A.p = np;
   S = await api({action:'init'}); saveCache(S); document.title = S.nama; tab('set');
-  $('#sm').innerHTML = '<div class="ok">Tersimpan.</div>';
+  toast('Pengaturan berhasil disimpan.');
 }
 // Paslon
 let PL = [];
@@ -204,8 +204,8 @@ function fx(u) {
 async function savePas() {
   if (PL.some(p => !p.nama.trim() || !p.gambar)) return $('#pm').innerHTML = '<div class="err">Lengkapi nama dan link gambar semua paslon.</div>';
   const r = await api({action:'savePaslon', list:PL.map(p => ({nama:p.nama.trim(), gambar:p.gambar}))});
-  if (!r.ok) return $('#pm').innerHTML = `<div class="err">${esc(r.msg)}</div>`;
-  S = await api({action:'init'}); saveCache(S); $('#pm').innerHTML = '<div class="ok">Paslon tersimpan.</div>';
+  if (!r.ok) return toast(r.msg, 1), $('#pm').innerHTML = `<div class="err">${esc(r.msg)}</div>`;
+  S = await api({action:'init'}); saveCache(S); toast('Paslon berhasil disimpan.');
 }
 // Pemilih
 async function tVot() {
@@ -224,15 +224,15 @@ async function addV() {
   const p = {nama:$('#vn').value.trim(), nisn:$('#vs').value.trim(), kelas:$('#vk').value.trim(), gender:$('#vg').value, tgl:$('#vt').value, id:$('#vi').value};
   if (!p.nama || !p.nisn || !p.kelas || !p.tgl) return $('#vm').innerHTML = '<div class="err">Lengkapi semua data.</div>';
   const r = await api({action:'addVoter', pemilih:p});
-  if (!r.ok) return $('#vm').innerHTML = `<div class="err">${esc(r.msg)}</div>`;
-  tVot(); setTimeout(() => $('#vm').innerHTML = `<div class="ok">Ditambahkan. ID: ${p.id}</div>`, 50);
+  if (!r.ok) return toast(r.msg, 1), $('#vm').innerHTML = `<div class="err">${esc(r.msg)}</div>`;
+  tVot(); toast('Pemilih berhasil ditambahkan. ID: ' + p.id);
 }
 async function listV() {
   const r = await api({action:'voters'});
   $('#vl').innerHTML = `<b>Total pemilih: ${r.list.length}</b><table><tr><th>ID</th><th>Nama</th><th>NISN</th><th>Kelas</th><th>JK</th><th>Tgl Lahir</th><th>Status</th><th></th></tr>
   ${r.list.map(v => `<tr><td>${esc(v.id)}</td><td>${esc(v.nama)}</td><td>${esc(v.nisn)}</td><td>${esc(v.kelas)}</td><td>${esc(v.gender)}</td><td>${esc(v.tgl_lahir)}</td><td>${v.sudah ? 'Sudah memilih' : 'Belum'}</td><td><button class="red sm" onclick="delV('${esc(v.id)}')">Hapus</button></td></tr>`).join('')}</table>`;
 }
-async function delV(id) { if (confirm('Hapus pemilih ' + id + '?')) { await api({action:'delVoter', id}); listV(); } }
+async function delV(id) { if (confirm('Hapus pemilih ' + id + '?')) { const r = await api({action:'delVoter', id}); toast(r.ok ? 'Pemilih berhasil dihapus.' : r.msg, !r.ok); listV(); } }
 // Hasil
 async function tHas() {
   $('#tv').innerHTML = 'Memuat...';
@@ -249,6 +249,7 @@ async function tHas() {
   <div class="c" style="margin:0 0 8px"><button class="sm" onclick="tHas()">Refresh</button></div>
   <table><tr><th>Waktu</th><th>ID</th><th>Nama</th><th>Kelas</th><th>Memilih</th></tr>${r.suara.map(s => `<tr><td>${esc(s.waktu)}</td><td>${esc(s.id)}</td><td>${esc(s.nama)}</td><td>${esc(s.kelas)}</td><td>Paslon ${esc(s.paslon_no)} - ${esc(s.paslon_nama)}</td></tr>`).join('')}</table>`;
 }
+window.addEventListener('unhandledrejection', () => toast('Gagal terhubung ke server.', 1));
 start(); flush();
 </script>
 </body>
