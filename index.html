@@ -172,13 +172,12 @@ let newLogo = null;
 function tSet() {
   newLogo = null;
   $('#tv').innerHTML = `<div class="box"><h2>Setting Website</h2><label>Nama Website</label><input id="sn" value="${esc(S.nama)}">
-  <label>Logo</label><input type="file" id="sl" accept="image/*"><label>Username Admin Baru (kosongkan bila tidak diubah)</label><input id="su">
+  <label>Link Logo (URL gambar)</label><input id="sl" value="${esc(S.logo)}" placeholder="https://..."><small>Bisa link Google Drive (bagikan: Siapa saja yang memiliki link) atau link gambar langsung.</small><label>Username Admin Baru (kosongkan bila tidak diubah)</label><input id="su">
   <label>Password Admin Baru (kosongkan bila tidak diubah)</label><input id="sp" type="password"><div class="c"><button onclick="saveSet()">Simpan</button></div><div id="sm"></div></div>`;
-  $('#sl').onchange = async e => { if (e.target.files[0]) newLogo = await img(e.target.files[0], 200, 200, true); };
 }
 async function saveSet() {
   const nu = $('#su').value.trim(), np = $('#sp').value;
-  const r = await api({action:'saveSettings', nama:$('#sn').value.trim() || S.nama, logo:newLogo, newUser:nu, newPass:np});
+  const r = await api({action:'saveSettings', nama:$('#sn').value.trim() || S.nama, logo:fx($('#sl').value.trim()), newUser:nu, newPass:np});
   if (!r.ok) return $('#sm').innerHTML = `<div class="err">${esc(r.msg)}</div>`;
   if (nu) A.u = nu; if (np) A.p = np;
   S = await api({action:'init'}); saveCache(S); document.title = S.nama; tab('set');
@@ -193,13 +192,17 @@ function tPas() {
 }
 function drawPas() {
   $('#tv').innerHTML = `<label>Jumlah Paslon</label><select id="jp" style="width:120px" onchange="setJP(+this.value)">${[1,2,3,4,5,6,7,8].map(n => `<option ${n===PL.length?'selected':''}>${n}</option>`).join('')}</select>
-  ${PL.map((p, i) => `<div class="pv"><b>Paslon ${i+1}</b>${p.gambar ? `<img src="${p.gambar}">` : ''}<input type="text" placeholder="Nama paslon" value="${esc(p.nama)}" oninput="PL[${i}].nama=this.value"><input type="file" accept="image/*" style="width:220px" onchange="pasImg(${i},this)"></div>`).join('')}
+  ${PL.map((p, i) => `<div class="pv"><b>Paslon ${i+1}</b>${p.gambar ? `<img src="${p.gambar}">` : ''}<input type="text" placeholder="Nama paslon" value="${esc(p.nama)}" oninput="PL[${i}].nama=this.value"><input type="text" placeholder="Link gambar (URL)" value="${esc(p.gambar)}" oninput="PL[${i}].gambar=fx(this.value.trim())" onchange="drawPas()"></div>`).join('')}
   <div class="c"><button onclick="savePas()">Simpan Paslon</button></div><div id="pm"></div>`;
 }
 function setJP(n) { while (PL.length < n) PL.push({nama:'', gambar:''}); PL.length = n; drawPas(); }
-async function pasImg(i, el) { if (el.files[0]) { PL[i].gambar = await img(el.files[0], 400, 300, false); drawPas(); } }
+// ubah link Google Drive jadi link gambar langsung
+function fx(u) {
+  const m = u.match(/drive\.google\.com\/file\/d\/([\w-]+)/) || u.match(/drive\.google\.com\/(?:open|uc)\?[^ ]*id=([\w-]+)/);
+  return m ? 'https://drive.google.com/thumbnail?id=' + m[1] + '&sz=w1000' : u;
+}
 async function savePas() {
-  if (PL.some(p => !p.nama.trim() || !p.gambar)) return $('#pm').innerHTML = '<div class="err">Lengkapi nama dan gambar semua paslon.</div>';
+  if (PL.some(p => !p.nama.trim() || !p.gambar)) return $('#pm').innerHTML = '<div class="err">Lengkapi nama dan link gambar semua paslon.</div>';
   const r = await api({action:'savePaslon', list:PL.map(p => ({nama:p.nama.trim(), gambar:p.gambar}))});
   if (!r.ok) return $('#pm').innerHTML = `<div class="err">${esc(r.msg)}</div>`;
   S = await api({action:'init'}); saveCache(S); $('#pm').innerHTML = '<div class="ok">Paslon tersimpan.</div>';
