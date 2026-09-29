@@ -50,17 +50,38 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt
 const URL_ = API_URL.startsWith('http') ? API_URL : '';
 let S = {nama:'Pemilos', logo:'', paslon:[]}, V = null, pick = null, A = null, clicks = 0, ct;
 
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+function errMsg(e) {
+  if (!navigator.onLine) return 'Tidak ada koneksi internet.';
+  return ({
+    timeout: 'Server terlalu lama merespons (sibuk). Coba lagi sebentar.',
+    busy: 'Server Google sedang sibuk. Coba lagi sebentar.',
+    deploy: 'Server menolak akses. Pastikan deploy Web app diatur "Anyone" dan URL berakhiran /exec.',
+    net: 'Gagal terhubung. Periksa internet, lalu pastikan deploy Web app diatur "Anyone" dan URL berakhiran /exec.'
+  })[e && e.kind] || 'Terjadi kesalahan: ' + ((e && e.message) || e);
+}
+// kirim ke Google Script: batas waktu 25 dtk, coba ulang otomatis 3x (addVoter 1x agar tidak ganda)
 async function api(d) {
   if (A) { d.u = A.u; d.p = A.p; }
-  const r = await fetch(URL_, {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify(d)});
-  return r.json();
+  const tries = d.action === 'addVoter' ? 1 : 3; let err;
+  for (let i = 0; i < tries; i++) {
+    if (i) await sleep(1000 * i);
+    const ac = new AbortController(), to = setTimeout(() => ac.abort(), 25000);
+    try {
+      const r = await fetch(URL_, {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify(d), signal:ac.signal});
+      const txt = await r.text(); clearTimeout(to);
+      try { return JSON.parse(txt); } catch (x) { err = Object.assign(new Error('format'), {kind: /accounts\.google|ServiceLogin|sign in/i.test(txt) ? 'deploy' : 'busy'}); }
+    } catch (x) { clearTimeout(to); err = Object.assign(new Error('net'), {kind: x.name === 'AbortError' ? 'timeout' : 'net'}); }
+    if (err.kind === 'deploy') break;
+  }
+  throw err;
 }
 function fs() { if (/Mobi|Android/i.test(navigator.userAgent)) return; const e = document.documentElement; if (!document.fullscreenElement && e.requestFullscreen) e.requestFullscreen().catch(()=>{}); }
 document.addEventListener('click', fs, {once:true});
 
 let cur = '';
 function saveCache(r) { try { localStorage.setItem('pemilos_cache', JSON.stringify(r)); } catch (e) {} }
-function toast(t, bad) { const e = document.createElement('div'); e.textContent = t; e.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:' + (bad ? '#dc2626' : '#059669') + ';color:#fff;padding:12px 22px;border-radius:10px;font-weight:700;z-index:99'; document.body.appendChild(e); setTimeout(() => e.remove(), 3500); }
+function toast(t, bad) { const e = document.createElement('div'); e.textContent = t; e.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:' + (bad ? '#dc2626' : '#059669') + ';color:#fff;padding:12px 22px;border-radius:10px;font-weight:700;z-index:99;max-width:90vw;text-align:center'; document.body.appendChild(e); setTimeout(() => e.remove(), 3500); }
 function shell(inner) {
   cur = '';
   $('#app').innerHTML = `<header><div id="logo" onclick="logoClick()">${S.logo ? `<img src="${S.logo}" style="width:100%;height:100%;border-radius:50%;object-fit:cover">` : '🗳️'}</div><h1>${esc(S.nama)}</h1></header><div id="view">${inner}</div>`;
@@ -76,7 +97,7 @@ async function start() {
   const cc = localStorage.getItem('pemilos_cache');
   if (cc) { try { S = JSON.parse(cc); document.title = S.nama; screen1(); refresh(); return; } catch (e) {} }
   shell('<p class="c">Memuat...</p>');
-  try { const r = await api({action:'init'}); S = r; saveCache(r); } catch (e) { shell(`<p class="err">Gagal terhubung ke server.</p><div class="c"><button onclick="start()">Coba lagi</button></div>`); return; }
+  try { const r = await api({action:'init'}); S = r; saveCache(r); } catch (e) { shell(`<p class="err">${esc(errMsg(e))}</p><div class="c"><button onclick="start()">Coba lagi</button></div>`); return; }
   document.title = S.nama; screen1();
 }
 async function refresh() {
@@ -96,7 +117,7 @@ async function cekId() {
   if (JSON.parse(localStorage.getItem('pemilos_q') || '[]').some(x => x.id.toUpperCase() === id.toUpperCase())) return $('#m').textContent = 'ID ini sudah digunakan untuk memilih.';
   $('#m').textContent = 'Memeriksa...';
   try { const r = await api({action:'voter', id}); if (!r.ok) return $('#m').textContent = r.msg; V = r.pemilih; screen2(); }
-  catch (e) { $('#m').textContent = 'Gagal terhubung ke server.'; }
+  catch (e) { $('#m').textContent = errMsg(e); }
 }
 // ---------- Layar 2: Identitas ----------
 function screen2() {
@@ -147,7 +168,7 @@ function adminLogin() {
 async function doLogin() {
   A = {u:$('#au').value, p:$('#ap').value};
   try { const r = await api({action:'adminLogin'}); if (!r.ok) { A = null; return $('#am').textContent = r.msg; } $('#md').remove(); tab('set'); }
-  catch (e) { A = null; $('#am').textContent = 'Gagal terhubung.'; }
+  catch (e) { A = null; $('#am').textContent = errMsg(e); }
 }
 function tab(t) {
   const T = [['set','Setting Website'],['pas','Input Paslon'],['vot','Input Pemilih'],['has','Hasil Pemilos']];
@@ -249,7 +270,8 @@ async function tHas() {
   <div class="c" style="margin:0 0 8px"><button class="sm" onclick="tHas()">Refresh</button></div>
   <table><tr><th>Waktu</th><th>ID</th><th>Nama</th><th>Kelas</th><th>Memilih</th></tr>${r.suara.map(s => `<tr><td>${esc(s.waktu)}</td><td>${esc(s.id)}</td><td>${esc(s.nama)}</td><td>${esc(s.kelas)}</td><td>Paslon ${esc(s.paslon_no)} - ${esc(s.paslon_nama)}</td></tr>`).join('')}</table>`;
 }
-window.addEventListener('unhandledrejection', () => toast('Gagal terhubung ke server.', 1));
+window.addEventListener('unhandledrejection', ev => toast(errMsg(ev.reason), 1));
+setInterval(() => { if (!A && cur === 's1') api({action:'ping'}).catch(() => {}); }, 240000); // jaga server tetap aktif
 start(); flush();
 </script>
 </body>
