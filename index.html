@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pemilos</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;font-family:Segoe UI,Arial,sans-serif;background:linear-gradient(135deg,#0f766e,#1e3a8a);display:flex;align-items:center;justify-content:center;color:#1f2937;user-select:none}
+#app{width:min(920px,96vw);max-height:96vh;background:#fff;border-radius:22px;padding:24px 28px;box-shadow:0 20px 60px #0006;overflow:auto}
+header{display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:16px}
+#logo{width:76px;height:76px;border-radius:50%;border:3px solid #0f766e;object-fit:cover;background:#e6fffb;display:flex;align-items:center;justify-content:center;font-size:34px;cursor:pointer}
+h1{margin:0;font-size:30px;text-align:center;color:#134e4a}
+.box{border:2px solid #0f766e;border-radius:14px;padding:20px;max-width:520px;margin:0 auto}
+.box h2{margin:0 0 14px;font-size:20px;text-align:center}
+label{display:block;margin:10px 0 4px;font-weight:600;font-size:14px}
+input,select{width:100%;padding:10px;border:1.5px solid #9ca3af;border-radius:8px;font-size:16px;user-select:text}
+button{padding:10px 26px;border:0;border-radius:10px;background:#0f766e;color:#fff;font-size:16px;font-weight:700;cursor:pointer}
+button:hover{background:#115e59}button:disabled{background:#9ca3af;cursor:not-allowed}
+button.red{background:#dc2626}button.gray{background:#6b7280}button.sm{padding:5px 12px;font-size:13px}
+.c{text-align:center;margin-top:16px}.err{color:#dc2626;text-align:center;margin-top:10px;font-weight:600}
+.row{display:flex;padding:8px 0;border-bottom:1px dashed #cbd5e1}.row b{width:130px}
+.grid{display:flex;flex-wrap:wrap;gap:18px;justify-content:center}
+.card{width:230px;border:3px solid #cbd5e1;border-radius:14px;padding:10px;text-align:center;cursor:pointer;transition:.15s}
+.card:hover{border-color:#5eead4}.card.sel{border-color:#0f766e;background:#ccfbf1;transform:scale(1.03)}
+.card img{width:100%;height:170px;object-fit:cover;border-radius:10px;background:#e5e7eb}
+.card h3{margin:8px 0 2px}.card small{font-weight:700;color:#0f766e}
+.modal{position:fixed;inset:0;background:#000a;display:flex;align-items:center;justify-content:center;z-index:9}
+.modal>div{background:#fff;border-radius:16px;padding:26px;min-width:300px;text-align:center}
+.modal h2{margin-top:0}.modal button{margin:6px}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}.tabs button{background:#e5e7eb;color:#111}.tabs button.on{background:#0f766e;color:#fff}
+table{width:100%;border-collapse:collapse;font-size:14px}th,td{border:1px solid #cbd5e1;padding:6px 8px;text-align:left}th{background:#f0fdfa}
+.pie{width:200px;height:200px;border-radius:50%;margin:0 auto}
+.win{background:#fef9c3;border:2px solid #eab308;border-radius:12px;padding:12px;text-align:center;font-size:20px;font-weight:700;margin:14px 0}
+.pv{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin:8px 0;padding:10px;border:1px solid #cbd5e1;border-radius:10px}
+.pv img{width:80px;height:60px;object-fit:cover;border-radius:6px}.pv input[type=text]{flex:1;min-width:160px}
+.ok{color:#059669;text-align:center;font-weight:700;margin-top:10px}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+// ====== ISI URL WEB APP GOOGLE APPS SCRIPT DI SINI ======
+const API_URL = "https://script.google.com/macros/s/AKfycbxJgeHanpzwAIf8J5ScEaDplzkyA_Lw7qO8sBtCeODPEPBYF0tC2NhSZVEeTIcW-ZJB/exec";
+// =========================================================
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const URL_ = API_URL.startsWith('http') ? API_URL : '';
+let S = {nama:'Pemilos', logo:'', paslon:[]}, V = null, pick = null, A = null, clicks = 0, ct;
+
+async function api(d) {
+  if (A) { d.u = A.u; d.p = A.p; }
+  const r = await fetch(URL_, {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify(d)});
+  return r.json();
+}
+function fs() { const e = document.documentElement; if (!document.fullscreenElement && e.requestFullscreen) e.requestFullscreen().catch(()=>{}); }
+document.addEventListener('click', fs, {once:true});
+
+function shell(inner) {
+  $('#app').innerHTML = `<header><div id="logo" onclick="logoClick()">${S.logo ? `<img src="${S.logo}" style="width:100%;height:100%;border-radius:50%;object-fit:cover">` : '🗳️'}</div><h1>${esc(S.nama)}</h1></header><div id="view">${inner}</div>`;
+}
+function logoClick() {
+  clearTimeout(ct); ct = setTimeout(() => clicks = 0, 2500);
+  if (++clicks >= 5) { clicks = 0; adminLogin(); }
+}
+
+async function start() {
+  V = null; pick = null; A = null;
+  if (!URL_) return setupUrl();
+  shell('<p class="c">Memuat...</p>');
+  try { const r = await api({action:'init'}); S = r; } catch (e) { shell(`<p class="err">Gagal terhubung ke server.</p><div class="c"><button onclick="start()">Coba lagi</button></div>`); return; }
+  document.title = S.nama; screen1();
+}
+function setupUrl() {
+  shell(`<div class="box"><h2>URL belum diisi</h2><p>Buka <b>index.html</b>, lalu isi konstanta <b>API_URL</b> dengan URL hasil deploy Google Apps Script.</p></div>`);
+}
+
+// ---------- Layar 1: ID ----------
+function screen1(msg) {
+  shell(`<div class="box"><h2>Konfirmasi Pemilih</h2><label>ID</label><input id="id" autocomplete="off" autofocus onkeydown="if(event.key==='Enter')cekId()"><div class="c"><button onclick="cekId()">OK</button></div><div class="err" id="m">${msg?'':''}</div>${msg?`<div class="ok">${msg}</div>`:''}</div>`);
+  $('#id').focus();
+}
+async function cekId() {
+  const id = $('#id').value.trim(); if (!id) return;
+  $('#m').textContent = 'Memeriksa...';
+  try { const r = await api({action:'voter', id}); if (!r.ok) return $('#m').textContent = r.msg; V = r.pemilih; screen2(); }
+  catch (e) { $('#m').textContent = 'Gagal terhubung ke server.'; }
+}
+// ---------- Layar 2: Identitas ----------
+function screen2() {
+  const t = V.tgl_lahir.split('-').reverse().join('-');
+  shell(`<div class="box"><h2>Identitas Pemilih</h2>
+  <div class="row"><b>Nama</b>: ${esc(V.nama)}</div><div class="row"><b>NISN</b>: ${esc(V.nisn)}</div><div class="row"><b>Kelas</b>: ${esc(V.kelas)}</div>
+  <div class="row"><b>Jenis Kelamin</b>: ${esc(V.gender)}</div><div class="row"><b>Tgl Lahir</b>: ${esc(t)}</div>
+  <div class="c"><button class="gray" onclick="start()">Batal</button> <button onclick="screen3()">LANJUT</button></div></div>`);
+}
+// ---------- Layar 3: Paslon ----------
+function screen3() {
+  pick = null;
+  shell(`<div class="grid">${S.paslon.map(p => `<div class="card" id="c${p.no}" onclick="sel('${p.no}')"><small>Paslon ${p.no}</small><img src="${p.gambar}"><h3>${esc(p.nama)}</h3></div>`).join('')}</div>
+  <div class="c"><button id="kf" disabled onclick="konfirm()">KONFIRMASI</button></div>`);
+}
+function sel(n) { pick = n; document.querySelectorAll('.card').forEach(c => c.classList.toggle('sel', c.id === 'c' + n)); $('#kf').disabled = false; }
+// ---------- Layar 4: Yakin ----------
+function konfirm() {
+  const p = S.paslon.find(x => x.no === pick);
+  const m = document.createElement('div'); m.className = 'modal'; m.id = 'md';
+  m.innerHTML = `<div><h2>Yakin!</h2><p>Anda memilih <b>Paslon ${p.no} - ${esc(p.nama)}</b>?</p><button id="ya" onclick="kirim()">YA</button><button class="red" onclick="$('#md').remove()">TIDAK</button></div>`;
+  document.body.appendChild(m);
+}
+async function kirim() {
+  $('#ya').disabled = true; $('#ya').textContent = '...';
+  try {
+    const r = await api({action:'vote', id:V.id, paslon:pick}); $('#md').remove();
+    if (!r.ok) { alert(r.msg); return start(); }
+    screen1('Terima kasih, suara Anda tersimpan.'); setTimeout(() => { if (!V || true) { const o = document.querySelector('.ok'); if (o) o.remove(); } }, 4000); V = null;
+  } catch (e) { $('#md').remove(); alert('Gagal mengirim suara, coba lagi.'); }
+}
+
+// ================= ADMIN =================
+function adminLogin() {
+  const m = document.createElement('div'); m.className = 'modal'; m.id = 'md';
+  m.innerHTML = `<div style="text-align:left"><h2>Login Admin</h2><label>Username</label><input id="au"><label>Password</label><input id="ap" type="password" onkeydown="if(event.key==='Enter')doLogin()"><div class="err" id="am"></div><div class="c"><button class="gray" onclick="$('#md').remove()">Batal</button> <button onclick="doLogin()">Masuk</button></div></div>`;
+  document.body.appendChild(m); $('#au').focus();
+}
+async function doLogin() {
+  A = {u:$('#au').value, p:$('#ap').value};
+  try { const r = await api({action:'adminLogin'}); if (!r.ok) { A = null; return $('#am').textContent = r.msg; } $('#md').remove(); tab('set'); }
+  catch (e) { A = null; $('#am').textContent = 'Gagal terhubung.'; }
+}
+function tab(t) {
+  const T = [['set','Setting Website'],['pas','Input Paslon'],['vot','Input Pemilih'],['has','Hasil Pemilos']];
+  shell(`<div class="tabs">${T.map(x => `<button class="${x[0]===t?'on':''}" onclick="tab('${x[0]}')">${x[1]}</button>`).join('')}<button class="red" style="margin-left:auto" onclick="start()">Keluar</button></div><div id="tv"></div>`);
+  ({set:tSet, pas:tPas, vot:tVot, has:tHas})[t]();
+}
+function img(file, w, h, png) {
+  return new Promise(res => {
+    const fr = new FileReader();
+    fr.onload = () => { const i = new Image(); i.onload = () => {
+      const k = Math.min(w / i.width, h / i.height, 1), c = document.createElement('canvas');
+      c.width = Math.round(i.width * k); c.height = Math.round(i.height * k);
+      const x = c.getContext('2d'); if (!png) { x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); } x.drawImage(i, 0, 0, c.width, c.height);
+      let d = png ? c.toDataURL('image/png') : '', q = .85;
+      if (!d || d.length > 45000) { do { d = c.toDataURL('image/jpeg', q); q -= .1; } while (d.length > 45000 && q > .1); }
+      res(d); }; i.src = fr.result; };
+    fr.readAsDataURL(file);
+  });
+}
+// Setting
+let newLogo = null;
+function tSet() {
+  newLogo = null;
+  $('#tv').innerHTML = `<div class="box"><h2>Setting Website</h2><label>Nama Website</label><input id="sn" value="${esc(S.nama)}">
+  <label>Logo</label><input type="file" id="sl" accept="image/*"><label>Username Admin Baru (kosongkan bila tidak diubah)</label><input id="su">
+  <label>Password Admin Baru (kosongkan bila tidak diubah)</label><input id="sp" type="password"><div class="c"><button onclick="saveSet()">Simpan</button></div><div id="sm"></div></div>`;
+  $('#sl').onchange = async e => { if (e.target.files[0]) newLogo = await img(e.target.files[0], 200, 200, true); };
+}
+async function saveSet() {
+  const nu = $('#su').value.trim(), np = $('#sp').value;
+  const r = await api({action:'saveSettings', nama:$('#sn').value.trim() || S.nama, logo:newLogo, newUser:nu, newPass:np});
+  if (!r.ok) return $('#sm').innerHTML = `<div class="err">${esc(r.msg)}</div>`;
+  if (nu) A.u = nu; if (np) A.p = np;
+  const i = await api({action:'init'}); S = i; document.title = S.nama; tab('set');
+  $('#sm').innerHTML = '<div class="ok">Tersimpan.</div>';
+}
+// Paslon
+let PL = [];
+function tPas() {
+  PL = S.paslon.map(p => ({nama:p.nama, gambar:p.gambar}));
+  if (!PL.length) PL = [{nama:'', gambar:''}, {nama:'', gambar:''}];
+  drawPas();
+}
+function drawPas() {
+  $('#tv').innerHTML = `<label>Jumlah Paslon</label><select id="jp" style="width:120px" onchange="setJP(+this.value)">${[1,2,3,4,5,6,7,8].map(n => `<option ${n===PL.length?'selected':''}>${n}</option>`).join('')}</select>
+  ${PL.map((p, i) => `<div class="pv"><b>Paslon ${i+1}</b>${p.gambar ? `<img src="${p.gambar}">` : ''}<input type="text" placeholder="Nama paslon" value="${esc(p.nama)}" oninput="PL[${i}].nama=this.value"><input type="file" accept="image/*" style="width:220px" onchange="pasImg(${i},this)"></div>`).join('')}
+  <div class="c"><button onclick="savePas()">Simpan Paslon</button></div><div id="pm"></div>`;
+}
+function setJP(n) { while (PL.length < n) PL.push({nama:'', gambar:''}); PL.length = n; drawPas(); }
+async function pasImg(i, el) { if (el.files[0]) { PL[i].gambar = await img(el.files[0], 400, 300, false); drawPas(); } }
+async function savePas() {
+  if (PL.some(p => !p.nama.trim() || !p.gambar)) return $('#pm').innerHTML = '<div class="err">Lengkapi nama dan gambar semua paslon.</div>';
+  const r = await api({action:'savePaslon', list:PL.map(p => ({nama:p.nama.trim(), gambar:p.gambar}))});
+  if (!r.ok) return $('#pm').innerHTML = `<div class="err">${esc(r.msg)}</div>`;
+  S = await api({action:'init'}); $('#pm').innerHTML = '<div class="ok">Paslon tersimpan.</div>';
+}
+// Pemilih
+async function tVot() {
+  $('#tv').innerHTML = `<div class="box" style="max-width:none"><h2>Input Pemilih</h2><div class="grid" style="gap:10px">
+  <div><label>Nama</label><input id="vn" oninput="genId()"></div><div><label>NISN</label><input id="vs"></div><div><label>Kelas</label><input id="vk"></div>
+  <div><label>Jenis Kelamin</label><select id="vg"><option>Laki-laki</option><option>Perempuan</option></select></div>
+  <div><label>Tanggal Lahir</label><input type="date" id="vt" onchange="genId()"></div><div><label>ID (otomatis)</label><input id="vi" readonly style="background:#f3f4f6"></div></div>
+  <div class="c"><button onclick="addV()">Tambah Pemilih</button></div><div id="vm"></div></div><div id="vl" style="margin-top:16px">Memuat...</div>`;
+  listV();
+}
+function genId() {
+  const n = $('#vn').value.trim(), t = $('#vt').value;
+  $('#vi').value = (n && t) ? n[0].toUpperCase() + t.slice(8, 10) + t.slice(5, 7) + t.slice(2, 4) : '';
+}
+async function addV() {
+  const p = {nama:$('#vn').value.trim(), nisn:$('#vs').value.trim(), kelas:$('#vk').value.trim(), gender:$('#vg').value, tgl:$('#vt').value, id:$('#vi').value};
+  if (!p.nama || !p.nisn || !p.kelas || !p.tgl) return $('#vm').innerHTML = '<div class="err">Lengkapi semua data.</div>';
+  const r = await api({action:'addVoter', pemilih:p});
+  if (!r.ok) return $('#vm').innerHTML = `<div class="err">${esc(r.msg)}</div>`;
+  tVot(); setTimeout(() => $('#vm').innerHTML = `<div class="ok">Ditambahkan. ID: ${p.id}</div>`, 50);
+}
+async function listV() {
+  const r = await api({action:'voters'});
+  $('#vl').innerHTML = `<b>Total pemilih: ${r.list.length}</b><table><tr><th>ID</th><th>Nama</th><th>NISN</th><th>Kelas</th><th>JK</th><th>Tgl Lahir</th><th>Status</th><th></th></tr>
+  ${r.list.map(v => `<tr><td>${esc(v.id)}</td><td>${esc(v.nama)}</td><td>${esc(v.nisn)}</td><td>${esc(v.kelas)}</td><td>${esc(v.gender)}</td><td>${esc(v.tgl_lahir)}</td><td>${v.sudah ? 'Sudah memilih' : 'Belum'}</td><td><button class="red sm" onclick="delV('${esc(v.id)}')">Hapus</button></td></tr>`).join('')}</table>`;
+}
+async function delV(id) { if (confirm('Hapus pemilih ' + id + '?')) { await api({action:'delVoter', id}); listV(); } }
+// Hasil
+async function tHas() {
+  $('#tv').innerHTML = 'Memuat...';
+  const r = await api({action:'results'}), col = ['#0f766e','#f59e0b','#3b82f6','#ef4444','#8b5cf6','#ec4899','#84cc16','#06b6d4'];
+  const tot = r.suara.length, cnt = r.paslon.map(p => ({...p, n:r.suara.filter(s => s.paslon_no === p.no).length}));
+  const pc = n => tot ? (n * 100 / tot) : 0; let acc = 0;
+  const grad = tot ? cnt.map((c, i) => { const a = acc; acc += pc(c.n); return `${col[i%8]} ${a}% ${acc}%`; }).join(',') : '#e5e7eb 0 100%';
+  const max = Math.max(0, ...cnt.map(c => c.n)), w = cnt.filter(c => c.n === max);
+  $('#tv').innerHTML = `<div style="display:flex;gap:30px;flex-wrap:wrap;align-items:center;justify-content:center">
+  <div class="pie" style="background:conic-gradient(${grad})"></div>
+  <div>${cnt.map((c, i) => `<div style="margin:6px 0"><span style="display:inline-block;width:14px;height:14px;background:${col[i%8]};border-radius:3px"></span> <b>Paslon ${c.no} - ${esc(c.nama)}</b>: ${c.n} suara (${pc(c.n).toFixed(1)}%)</div>`).join('')}
+  <div style="margin-top:8px">Suara masuk: ${tot} dari ${r.totalPemilih} pemilih</div></div></div>
+  <div class="win">${!tot ? 'Belum ada suara masuk' : w.length > 1 ? 'Hasil seri: ' + w.map(x => 'Paslon ' + x.no).join(' & ') : '🏆 Pemenang PEMILOS: Paslon ' + w[0].no + ' - ' + esc(w[0].nama)}</div>
+  <div class="c" style="margin:0 0 8px"><button class="sm" onclick="tHas()">Refresh</button></div>
+  <table><tr><th>Waktu</th><th>ID</th><th>Nama</th><th>Kelas</th><th>Memilih</th></tr>${r.suara.map(s => `<tr><td>${esc(s.waktu)}</td><td>${esc(s.id)}</td><td>${esc(s.nama)}</td><td>${esc(s.kelas)}</td><td>Paslon ${esc(s.paslon_no)} - ${esc(s.paslon_nama)}</td></tr>`).join('')}</table>`;
+}
+start();
+</script>
+</body>
+</html>
