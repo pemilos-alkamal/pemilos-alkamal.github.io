@@ -6,10 +6,10 @@
 <title>Pemilos</title>
 <style>
 *{box-sizing:border-box}
-body{margin:0;min-height:100vh;font-family:Segoe UI,Arial,sans-serif;background:linear-gradient(135deg,#0f766e,#1e3a8a);display:flex;align-items:center;justify-content:center;color:#1f2937;user-select:none}
-#app{width:min(920px,96vw);max-height:96vh;background:#fff;border-radius:22px;padding:24px 28px;box-shadow:0 20px 60px #0006;overflow:auto}
-header{display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:16px}
-#logo{width:76px;height:76px;border-radius:50%;border:3px solid #0f766e;object-fit:cover;background:#e6fffb;display:flex;align-items:center;justify-content:center;font-size:34px;cursor:pointer}
+body{margin:0;min-height:100dvh;padding:8px;-webkit-tap-highlight-color:transparent;font-family:Segoe UI,Arial,sans-serif;background:linear-gradient(135deg,#0f766e,#1e3a8a);display:flex;align-items:center;justify-content:center;color:#1f2937;user-select:none}
+#app{width:min(920px,96vw);max-height:calc(100dvh - 16px);-webkit-overflow-scrolling:touch;background:#fff;border-radius:22px;padding:24px 28px;box-shadow:0 8px 24px #0004;overflow:auto}
+header{flex-wrap:wrap;display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:16px}
+#logo{flex:0 0 76px;aspect-ratio:1/1;overflow:hidden;width:76px;height:76px;border-radius:50%;border:3px solid #0f766e;object-fit:cover;background:#e6fffb;display:flex;align-items:center;justify-content:center;font-size:34px;cursor:pointer}
 h1{margin:0;font-size:30px;text-align:center;color:#134e4a}
 .box{border:2px solid #0f766e;border-radius:14px;padding:20px;max-width:520px;margin:0 auto}
 .box h2{margin:0 0 14px;font-size:20px;text-align:center}
@@ -29,12 +29,13 @@ button.red{background:#dc2626}button.gray{background:#6b7280}button.sm{padding:5
 .modal>div{background:#fff;border-radius:16px;padding:26px;min-width:300px;text-align:center}
 .modal h2{margin-top:0}.modal button{margin:6px}
 .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}.tabs button{background:#e5e7eb;color:#111}.tabs button.on{background:#0f766e;color:#fff}
-table{width:100%;border-collapse:collapse;font-size:14px}th,td{border:1px solid #cbd5e1;padding:6px 8px;text-align:left}th{background:#f0fdfa}
+table{display:block;overflow-x:auto;width:100%;border-collapse:collapse;font-size:14px}th,td{border:1px solid #cbd5e1;padding:6px 8px;text-align:left}th{background:#f0fdfa}
 .pie{width:200px;height:200px;border-radius:50%;margin:0 auto}
 .win{background:#fef9c3;border:2px solid #eab308;border-radius:12px;padding:12px;text-align:center;font-size:20px;font-weight:700;margin:14px 0}
 .pv{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin:8px 0;padding:10px;border:1px solid #cbd5e1;border-radius:10px}
 .pv img{width:80px;height:60px;object-fit:cover;border-radius:6px}.pv input[type=text]{flex:1;min-width:160px}
 .ok{color:#059669;text-align:center;font-weight:700;margin-top:10px}
+@media(max-width:600px){#app{padding:14px;border-radius:14px}h1{font-size:21px}#logo{flex:0 0 56px;width:56px;height:56px}.box{padding:14px}.card{width:100%;max-width:300px}.grid>div{width:100%}.row b{width:105px}.pie{width:170px;height:170px}.tabs button{padding:8px 10px;font-size:13px}table{font-size:12px}.pv img{width:64px;height:48px}.pv input[type=file]{width:100%!important}.row{flex-wrap:wrap}}
 </style>
 </head>
 <body>
@@ -54,10 +55,14 @@ async function api(d) {
   const r = await fetch(URL_, {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify(d)});
   return r.json();
 }
-function fs() { const e = document.documentElement; if (!document.fullscreenElement && e.requestFullscreen) e.requestFullscreen().catch(()=>{}); }
+function fs() { if (/Mobi|Android/i.test(navigator.userAgent)) return; const e = document.documentElement; if (!document.fullscreenElement && e.requestFullscreen) e.requestFullscreen().catch(()=>{}); }
 document.addEventListener('click', fs, {once:true});
 
+let cur = '';
+function saveCache(r) { try { localStorage.setItem('pemilos_cache', JSON.stringify(r)); } catch (e) {} }
+function toast(t) { const e = document.createElement('div'); e.textContent = t; e.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#059669;color:#fff;padding:12px 22px;border-radius:10px;font-weight:700;z-index:99'; document.body.appendChild(e); setTimeout(() => e.remove(), 3500); }
 function shell(inner) {
+  cur = '';
   $('#app').innerHTML = `<header><div id="logo" onclick="logoClick()">${S.logo ? `<img src="${S.logo}" style="width:100%;height:100%;border-radius:50%;object-fit:cover">` : '🗳️'}</div><h1>${esc(S.nama)}</h1></header><div id="view">${inner}</div>`;
 }
 function logoClick() {
@@ -68,9 +73,14 @@ function logoClick() {
 async function start() {
   V = null; pick = null; A = null;
   if (!URL_) return setupUrl();
+  const cc = localStorage.getItem('pemilos_cache');
+  if (cc) { try { S = JSON.parse(cc); document.title = S.nama; screen1(); refresh(); return; } catch (e) {} }
   shell('<p class="c">Memuat...</p>');
-  try { const r = await api({action:'init'}); S = r; } catch (e) { shell(`<p class="err">Gagal terhubung ke server.</p><div class="c"><button onclick="start()">Coba lagi</button></div>`); return; }
+  try { const r = await api({action:'init'}); S = r; saveCache(r); } catch (e) { shell(`<p class="err">Gagal terhubung ke server.</p><div class="c"><button onclick="start()">Coba lagi</button></div>`); return; }
   document.title = S.nama; screen1();
+}
+async function refresh() {
+  try { const r = await api({action:'init'}); if (JSON.stringify(r) === JSON.stringify(S)) return; S = r; saveCache(r); document.title = S.nama; if (cur === 's1' && !$('#id').value) screen1(); } catch (e) {}
 }
 function setupUrl() {
   shell(`<div class="box"><h2>URL belum diisi</h2><p>Buka <b>index.html</b>, lalu isi konstanta <b>API_URL</b> dengan URL hasil deploy Google Apps Script.</p></div>`);
@@ -79,10 +89,11 @@ function setupUrl() {
 // ---------- Layar 1: ID ----------
 function screen1(msg) {
   shell(`<div class="box"><h2>Konfirmasi Pemilih</h2><label>ID</label><input id="id" autocomplete="off" autofocus onkeydown="if(event.key==='Enter')cekId()"><div class="c"><button onclick="cekId()">OK</button></div><div class="err" id="m">${msg?'':''}</div>${msg?`<div class="ok">${msg}</div>`:''}</div>`);
-  $('#id').focus();
+  cur = 's1'; $('#id').focus();
 }
 async function cekId() {
   const id = $('#id').value.trim(); if (!id) return;
+  if (JSON.parse(localStorage.getItem('pemilos_q') || '[]').some(x => x.id.toUpperCase() === id.toUpperCase())) return $('#m').textContent = 'ID ini sudah digunakan untuk memilih.';
   $('#m').textContent = 'Memeriksa...';
   try { const r = await api({action:'voter', id}); if (!r.ok) return $('#m').textContent = r.msg; V = r.pemilih; screen2(); }
   catch (e) { $('#m').textContent = 'Gagal terhubung ke server.'; }
@@ -109,13 +120,22 @@ function konfirm() {
   m.innerHTML = `<div><h2>Yakin!</h2><p>Anda memilih <b>Paslon ${p.no} - ${esc(p.nama)}</b>?</p><button id="ya" onclick="kirim()">YA</button><button class="red" onclick="$('#md').remove()">TIDAK</button></div>`;
   document.body.appendChild(m);
 }
-async function kirim() {
-  $('#ya').disabled = true; $('#ya').textContent = '...';
+function kirim() {
+  $('#md').remove();
+  const q = JSON.parse(localStorage.getItem('pemilos_q') || '[]');
+  q.push({id:V.id, paslon:pick}); localStorage.setItem('pemilos_q', JSON.stringify(q));
+  flush(); start(); toast('Terima kasih, suara Anda tersimpan.');
+}
+let fl = false;
+async function flush() { // kirim suara di latar belakang, ulangi jika gagal
+  if (fl) return; fl = true;
   try {
-    const r = await api({action:'vote', id:V.id, paslon:pick}); $('#md').remove();
-    if (!r.ok) { alert(r.msg); return start(); }
-    screen1('Terima kasih, suara Anda tersimpan.'); setTimeout(() => { if (!V || true) { const o = document.querySelector('.ok'); if (o) o.remove(); } }, 4000); V = null;
-  } catch (e) { $('#md').remove(); alert('Gagal mengirim suara, coba lagi.'); }
+    while (true) {
+      const q = JSON.parse(localStorage.getItem('pemilos_q') || '[]'); if (!q.length) break;
+      try { await api({action:'vote', id:q[0].id, paslon:q[0].paslon}); } catch (e) { setTimeout(flush, 5000); break; }
+      const n = JSON.parse(localStorage.getItem('pemilos_q') || '[]'); n.shift(); localStorage.setItem('pemilos_q', JSON.stringify(n));
+    }
+  } finally { fl = false; }
 }
 
 // ================= ADMIN =================
@@ -161,7 +181,7 @@ async function saveSet() {
   const r = await api({action:'saveSettings', nama:$('#sn').value.trim() || S.nama, logo:newLogo, newUser:nu, newPass:np});
   if (!r.ok) return $('#sm').innerHTML = `<div class="err">${esc(r.msg)}</div>`;
   if (nu) A.u = nu; if (np) A.p = np;
-  const i = await api({action:'init'}); S = i; document.title = S.nama; tab('set');
+  S = await api({action:'init'}); saveCache(S); document.title = S.nama; tab('set');
   $('#sm').innerHTML = '<div class="ok">Tersimpan.</div>';
 }
 // Paslon
@@ -182,7 +202,7 @@ async function savePas() {
   if (PL.some(p => !p.nama.trim() || !p.gambar)) return $('#pm').innerHTML = '<div class="err">Lengkapi nama dan gambar semua paslon.</div>';
   const r = await api({action:'savePaslon', list:PL.map(p => ({nama:p.nama.trim(), gambar:p.gambar}))});
   if (!r.ok) return $('#pm').innerHTML = `<div class="err">${esc(r.msg)}</div>`;
-  S = await api({action:'init'}); $('#pm').innerHTML = '<div class="ok">Paslon tersimpan.</div>';
+  S = await api({action:'init'}); saveCache(S); $('#pm').innerHTML = '<div class="ok">Paslon tersimpan.</div>';
 }
 // Pemilih
 async function tVot() {
@@ -226,7 +246,7 @@ async function tHas() {
   <div class="c" style="margin:0 0 8px"><button class="sm" onclick="tHas()">Refresh</button></div>
   <table><tr><th>Waktu</th><th>ID</th><th>Nama</th><th>Kelas</th><th>Memilih</th></tr>${r.suara.map(s => `<tr><td>${esc(s.waktu)}</td><td>${esc(s.id)}</td><td>${esc(s.nama)}</td><td>${esc(s.kelas)}</td><td>Paslon ${esc(s.paslon_no)} - ${esc(s.paslon_nama)}</td></tr>`).join('')}</table>`;
 }
-start();
+start(); flush();
 </script>
 </body>
 </html>
