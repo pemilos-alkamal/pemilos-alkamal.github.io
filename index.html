@@ -21,9 +21,9 @@ button.red{background:#dc2626}button.gray{background:#6b7280}button.sm{padding:5
 .c{text-align:center;margin-top:16px}.err{color:#dc2626;text-align:center;margin-top:10px;font-weight:600}
 .row{display:flex;padding:8px 0;border-bottom:1px dashed #cbd5e1}.row b{width:130px}
 .grid{display:flex;flex-wrap:wrap;gap:18px;justify-content:center}
-.card{width:230px;border:3px solid #cbd5e1;border-radius:14px;padding:10px;text-align:center;cursor:pointer;transition:.15s}
+.card{width:auto;border:3px solid #cbd5e1;border-radius:14px;padding:10px;text-align:center;cursor:pointer;transition:.15s}
 .card:hover{border-color:#5eead4}.card.sel{border-color:#0f766e;background:#ccfbf1;transform:scale(1.03)}
-.card img{width:100%;height:170px;object-fit:cover;border-radius:10px;background:#e5e7eb}
+.card img{display:block;margin:0 auto;width:auto;height:min(58dvh,560px);aspect-ratio:2/3;object-fit:cover;border-radius:10px;background:#e5e7eb}
 .card h3{margin:8px 0 2px}.card small{font-weight:700;color:#0f766e}
 .modal{position:fixed;inset:0;background:#000a;display:flex;align-items:center;justify-content:center;z-index:9}
 .modal>div{background:#fff;border-radius:16px;padding:26px;min-width:300px;text-align:center}
@@ -35,7 +35,7 @@ table{display:block;overflow-x:auto;width:100%;border-collapse:collapse;font-siz
 .pv{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin:8px 0;padding:10px;border:1px solid #cbd5e1;border-radius:10px}
 .pv img{width:80px;height:60px;object-fit:cover;border-radius:6px}.pv input[type=text]{flex:1;min-width:160px}
 .ok{color:#059669;text-align:center;font-weight:700;margin-top:10px}
-@media(max-width:600px){#app{padding:14px;border-radius:14px}h1{font-size:21px}#logo{flex:0 0 56px;width:56px;height:56px}.box{padding:14px}.card{width:100%;max-width:300px}.grid>div{width:100%}.row b{width:105px}.pie{width:170px;height:170px}.tabs button{padding:8px 10px;font-size:13px}table{font-size:12px}.pv img{width:64px;height:48px}.pv input[type=file]{width:100%!important}.row{flex-wrap:wrap}}
+@media(max-width:600px){#app{padding:14px;border-radius:14px}h1{font-size:21px}#logo{flex:0 0 56px;width:56px;height:56px}.box{padding:14px}.grid>.card{width:calc(50% - 9px);max-width:none;padding:8px}.card img{width:100%;height:auto}.grid>div{width:100%}.row b{width:105px}.pie{width:170px;height:170px}.tabs button{padding:8px 10px;font-size:13px}table{font-size:12px}.pv img{width:64px;height:48px}.pv input[type=file]{width:100%!important}.row{flex-wrap:wrap}}
 </style>
 </head>
 <body>
