@@ -111,11 +111,11 @@ async function api(d) {
   }
   throw err;
 }
-// ===== FULLSCREEN (untuk browser). Di Electron, fullscreen diatur main.js =====
+// ===== FULLSCREEN (browser dan aplikasi .exe). Jika memakai main.js kiosk, jendela sudah fullscreen =====
 const isEl = /Electron/i.test(navigator.userAgent), isMob = /Mobi|Android/i.test(navigator.userAgent);
 let allowExit = false;
 async function goFS() {
-  if (isEl || isMob || allowExit || document.fullscreenElement || !document.documentElement.requestFullscreen) return;
+  if (isMob || allowExit || document.fullscreenElement || !document.documentElement.requestFullscreen) return;
   try {
     await document.documentElement.requestFullscreen({navigationUI:'hide'});
     if (navigator.keyboard && navigator.keyboard.lock) navigator.keyboard.lock(['Escape']).catch(() => {});
@@ -123,7 +123,7 @@ async function goFS() {
 }
 // Ctrl+Shift+F: keluar/masuk fullscreen. F11 diblokir saat mode terkunci.
 document.addEventListener('keydown', e => {
-  if (isEl || isMob) return;
+  if (isMob) return;
   if (e.ctrlKey && e.shiftKey && e.code === 'KeyF') {
     e.preventDefault(); allowExit = !allowExit;
     if (allowExit) { if (document.fullscreenElement) document.exitFullscreen(); toast('Fullscreen dimatikan. Tekan Ctrl+Shift+F untuk mengaktifkan lagi.'); }
@@ -132,6 +132,7 @@ document.addEventListener('keydown', e => {
 }, true);
 // setelah keluar fullscreen (mis. tekan Esc), klik/tombol/sentuh berikutnya masuk fullscreen lagi
 ['click', 'keydown', 'touchend'].forEach(ev => document.addEventListener(ev, goFS, true));
+goFS(); // coba langsung saat dibuka (berhasil jika pembungkus .exe mengizinkan)
 
 let cur = '', tk = 0;
 function saveCache(r) { try { localStorage.setItem('pemilos_cache', JSON.stringify(r)); } catch (e) {} }
