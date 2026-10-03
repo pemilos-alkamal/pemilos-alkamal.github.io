@@ -1,4 +1,39 @@
 <!DOCTYPE html>
+<!--
+=====================================================================
+UNTUK MEMBUAT .EXE DENGAN ELECTRON: simpan dua isi di bawah ini sebagai file
+terpisah di satu folder bersama index.html, lalu jalankan: npm install, lalu npm run build
+
+----- main.js -----
+const { app, BrowserWindow } = require('electron');
+app.whenReady().then(() => {
+  const win = new BrowserWindow({ kiosk: true, fullscreen: true, autoHideMenuBar: true });
+  win.setMenu(null);
+  win.loadFile('index.html');
+  win.webContents.on('before-input-event', (e, i) => {
+    if (i.type !== 'keyDown' || !i.control || !i.shift) return;
+    if (i.code === 'KeyF') { e.preventDefault(); const k = !win.isKiosk(); win.setKiosk(k); win.setFullScreen(k); } // keluar/masuk fullscreen
+    if (i.code === 'KeyQ') { e.preventDefault(); app.quit(); } // tutup aplikasi
+  });
+});
+app.on('window-all-closed', () => app.quit());
+
+----- package.json -----
+{
+  "name": "pemilos",
+  "version": "1.0.0",
+  "main": "main.js",
+  "scripts": { "start": "electron .", "build": "electron-builder" },
+  "devDependencies": { "electron": "^30.0.0", "electron-builder": "^24.13.3" },
+  "build": {
+    "appId": "id.pemilos.app",
+    "productName": "Pemilos",
+    "files": ["main.js", "index.html"],
+    "win": { "target": "portable" }
+  }
+}
+=====================================================================
+-->
 <html lang="id">
 <head>
 <meta charset="UTF-8">
@@ -76,8 +111,27 @@ async function api(d) {
   }
   throw err;
 }
-function fs() { if (/Mobi|Android/i.test(navigator.userAgent)) return; const e = document.documentElement; if (!document.fullscreenElement && e.requestFullscreen) e.requestFullscreen().catch(()=>{}); }
-document.addEventListener('click', fs, {once:true});
+// ===== FULLSCREEN (untuk browser). Di Electron, fullscreen diatur main.js =====
+const isEl = /Electron/i.test(navigator.userAgent), isMob = /Mobi|Android/i.test(navigator.userAgent);
+let allowExit = false;
+async function goFS() {
+  if (isEl || isMob || allowExit || document.fullscreenElement || !document.documentElement.requestFullscreen) return;
+  try {
+    await document.documentElement.requestFullscreen({navigationUI:'hide'});
+    if (navigator.keyboard && navigator.keyboard.lock) navigator.keyboard.lock(['Escape']).catch(() => {});
+  } catch (e) {}
+}
+// Ctrl+Shift+F: keluar/masuk fullscreen. F11 diblokir saat mode terkunci.
+document.addEventListener('keydown', e => {
+  if (isEl || isMob) return;
+  if (e.ctrlKey && e.shiftKey && e.code === 'KeyF') {
+    e.preventDefault(); allowExit = !allowExit;
+    if (allowExit) { if (document.fullscreenElement) document.exitFullscreen(); toast('Fullscreen dimatikan. Tekan Ctrl+Shift+F untuk mengaktifkan lagi.'); }
+    else goFS();
+  } else if (e.key === 'F11' && !allowExit) e.preventDefault();
+}, true);
+// setelah keluar fullscreen (mis. tekan Esc), klik/tombol/sentuh berikutnya masuk fullscreen lagi
+['click', 'keydown', 'touchend'].forEach(ev => document.addEventListener(ev, goFS, true));
 
 let cur = '', tk = 0;
 function saveCache(r) { try { localStorage.setItem('pemilos_cache', JSON.stringify(r)); } catch (e) {} }
